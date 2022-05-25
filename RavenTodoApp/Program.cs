@@ -1,8 +1,15 @@
+using RavenTodoApp.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddSingleton(typeof(IRepository<>), typeof(RavenDbRepository<>));
+builder.Services.AddSingleton<IRavenDbContext, RavenDbContext>();
+
+builder.Services.Configure<PersistenceSettings>(builder.Configuration.GetSection("Database"));
 
 var app = builder.Build();
 
@@ -23,6 +30,5 @@ app.MapControllerRoute(
     pattern: "{controller}/{action=Index}/{id?}");
 
 app.MapFallbackToFile("index.html");
-;
 
 app.Run();
