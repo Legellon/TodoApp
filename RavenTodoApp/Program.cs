@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddSingleton(typeof(IRepository<>), typeof(RavenDbRepository<>));
+builder.Services.AddSingleton<IItemRepository, ItemRepository>();
 builder.Services.AddSingleton<IRavenDbContext, RavenDbContext>();
 
 builder.Services.Configure<PersistenceSettings>(builder.Configuration.GetSection("Database"));
