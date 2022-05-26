@@ -15,6 +15,7 @@ public interface IRavenDbContext
 public class RavenDbContext : IRavenDbContext
 {
     private readonly PersistenceSettings _persistenceSettings;
+    
     public DocumentStore Store { get; }
     
     public RavenDbContext(IOptionsMonitor<PersistenceSettings> settings)
