@@ -1,16 +1,34 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using RavenTodoApp.Persistence;
+using RavenTodoApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services
+    .AddControllers();
 
-builder.Services.AddControllersWithViews();
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie();
 
-builder.Services.AddSingleton(typeof(IRepository<>), typeof(RavenDbRepository<>));
-builder.Services.AddSingleton<IItemRepository, ItemRepository>();
-builder.Services.AddSingleton<IRavenDbContext, RavenDbContext>();
+builder.Services
+    .AddAuthorization(o =>
+    {
+        o.AddPolicy("AccessPolicy", policy => 
+            policy.Requirements.Add(new SameOwnerRequirement()));
+    })
+    .AddSingleton<IAuthorizationHandler, ItemsAuthHandler>();
+    
+builder.Services
+    .Configure<PersistenceSettings>(builder.Configuration.GetSection("Database"))
+    .AddSingleton<IRavenDbContext, RavenDbContext>()
+    .AddSingleton(typeof(IRepository<>), typeof(RavenDbRepository<>));
 
-builder.Services.Configure<PersistenceSettings>(builder.Configuration.GetSection("Database"));
+builder.Services
+    .AddSingleton<IItemRepository, ItemRepository>()
+    .AddSingleton<IUserRepository, UserRepository>();
 
 var app = builder.Build();
 
@@ -21,15 +39,20 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
 app.UseRouting();
 
+app
+    .UseAuthentication()
+    .UseAuthorization()
+    .UseCookiePolicy(new CookiePolicyOptions
+    {
+        MinimumSameSitePolicy = SameSiteMode.Strict
+    });
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller}/{action=Index}/{id?}");
+app.UseHttpsRedirection();
+// app.UseStaticFiles();
 
+app.MapControllers();
 app.MapFallbackToFile("index.html");
 
 app.Run();
