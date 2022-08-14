@@ -1,54 +1,87 @@
-using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RavenTodoApp.Persistence;
 
 namespace RavenTodoApp.Controllers;
 
+[Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("api/items")]
 public class ItemsController : ControllerBase
 {
-    private readonly IItemRepository _repository;
+    private readonly IItemRepository _itemRepository;
+    private readonly IAuthorizationService _authService;
 
-    public ItemsController(IItemRepository repository)
+    public ItemsController(IItemRepository itemRepository, IAuthorizationService authService)
     {
-        _repository = repository;
-    }
-    
-    [HttpGet]
-    public ActionResult GetAll()
-    {
-        var userToken = HttpContext.Request.Cookies["user-token"];
-
-        var rnd = new Random();
-        
-        var token = userToken ?? 
-                    Convert.ToBase64String(
-                        Encoding.UTF8.GetBytes(
-                            rnd.Next(100).ToString()));
-        
-        return RedirectPermanent($"items/{token}");
-    } 
-    
-    [HttpGet("{userToken}")]
-    public ActionResult GetAll(string userToken)
-    {
-        var items = _repository.GetAllRelated(userToken);
-        return Ok(new { userToken, items });
+        _itemRepository = itemRepository;
+        _authService = authService;
     }
 
-    [HttpPost("insert/{item}")]
-    public ActionResult InsertOrUpdate(Item item)
+    [HttpGet("allBy/{userToken}")]
+    public async Task<IActionResult> GetAll(string userToken)
     {
-        Console.WriteLine(item);
-        _repository.InsertOrUpdate(item);
-        return Ok();
+        var items = _itemRepository.GetAllRelatedItems(userToken);
+
+        var authorizationResult = await _authService.AuthorizeAsync(
+            User, items.FirstOrDefault(), "AccessPolicy");
+
+        if (!authorizationResult.Succeeded)
+        {
+            return new NotFoundResult();
+        }
+
+        return Ok(new {items});
     }
 
-    [HttpPost("delete/{itemId}")]
-    public ActionResult Delete(string itemId)
+    [HttpPost("update")]
+    public async Task<IActionResult> Update([FromBody] Item item)
     {
-        _repository.Delete(itemId);
-        return Ok();
+        var authorizationResult = await _authService.AuthorizeAsync(
+            User, item, "AccessPolicy");
+
+        if (!authorizationResult.Succeeded)
+        {
+            return new ForbidResult();
+        }
+
+        item.Owner = User.Identity?.Name;
+        _itemRepository.InsertOrUpdate(item);
+
+        return Ok(new {success = true});
+    }
+
+    [HttpPost("create")]
+    public IActionResult Create([FromBody] Item item)
+    {
+        if (!(bool) User.Identity?.IsAuthenticated)
+        {
+            return new ForbidResult();
+        }
+
+        _itemRepository.InsertOrUpdate(new Item()
+        {
+            Title = item.Title,
+            Owner = User.Identity.Name
+        });
+
+        return Ok(new {success = true});
+    }
+
+    [HttpPost("delete/{*itemId}")]
+    public async Task<IActionResult> Delete(string itemId)
+    {
+        var accessedItem = _itemRepository.Get(itemId);
+
+        var authorizationResult = await _authService.AuthorizeAsync(
+            User, accessedItem, "AccessPolicy");
+
+        if (!authorizationResult.Succeeded)
+        {
+            return new ForbidResult();
+        }
+
+        _itemRepository.Delete(itemId);
+        return Ok(new {success = true});
     }
 }
