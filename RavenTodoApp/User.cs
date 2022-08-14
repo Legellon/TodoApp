@@ -1,7 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace RavenTodoApp;
 
 public class User
 {
-    public string Id { get; set; }
-    public string Token { get; set; }
+    [Key]
+    public string? Id { get; set; }
+    
+    public string? UserToken { get; set; }
 }

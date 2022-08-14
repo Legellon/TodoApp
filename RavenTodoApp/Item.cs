@@ -1,9 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace RavenTodoApp;
 
 public class Item
 {
-    public string Id { get; set; }
-    public string Title { get; set; }
-    public string Content { get; set; }
-    public string UserId { get; set; }
+    [Key]
+    public string? Id { get; set; }
+    
+    public string? Title { get; set; }
+    
+    public string? Owner { get; set; }
 }
