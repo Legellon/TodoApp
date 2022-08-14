@@ -1,6 +1,6 @@
 namespace RavenTodoApp.Persistence;
 
-public class RavenDbRepository<T> : IRepository<T>
+public class RavenDbRepository<T> : IRepository<T> where T : class
 {
     private readonly IRavenDbContext _context;
 
