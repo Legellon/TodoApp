@@ -42,6 +42,15 @@ public class UserController : ControllerBase
         });
     }
 
+    [HttpGet("signout")] 
+    public async Task<IActionResult> SignOutFromSession()
+    {
+        await HttpContext.SignOutAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme);
+
+        return Ok();
+    }
+    
     [HttpGet("authorize/{userToken}")]
     public async Task<IActionResult> ValidateTokenOrHandleNewToken(string? userToken)
     {
