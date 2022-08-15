@@ -45,10 +45,13 @@ public class UserController : ControllerBase
     [HttpGet("authorize/{userToken}")]
     public async Task<IActionResult> ValidateTokenOrHandleNewToken(string? userToken)
     {
+        var isNew = false;
+        
         if (userToken is null || _userRepository.GetUserByToken(userToken) is null)
         {
             userToken = GenerateUserToken();
             CreateNewUser(userToken);
+            isNew = true;
         }
 
         var claimsIdentity = new ClaimsIdentity(
@@ -68,6 +71,6 @@ public class UserController : ControllerBase
             new ClaimsPrincipal(claimsIdentity),
             authOptions);
         
-        return Ok(new { userToken });
+        return Ok(new {userToken, isNew});
     }
 }
