@@ -54,15 +54,10 @@ public class ItemsController : ControllerBase
     [HttpPost("create")]
     public IActionResult Create([FromBody] Item item)
     {
-        if (!(bool) User.Identity?.IsAuthenticated)
-        {
-            return new ForbidResult();
-        }
-
         _itemRepository.InsertOrUpdate(new Item()
         {
             Title = item.Title,
-            Owner = User.Identity.Name
+            Owner = User.Identity?.Name
         });
 
         return Ok(new {success = true});
